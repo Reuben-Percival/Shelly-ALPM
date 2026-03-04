@@ -7,10 +7,11 @@ namespace Shelly.Gtk;
 
 sealed class Program
 {
-    private static ServiceCollection _serviceCollection;
     public static int Main(string[] args)
     {
-        CreateDependencyInjection();
+        ServiceCollection serviceCollection = new();
+        var serviceProvider = CreateDependencyInjection(serviceCollection);
+
         var application = global::Gtk.Application.New("com.shellyorg.shelly", Gio.ApplicationFlags.DefaultFlags);
 
         application.OnActivate += (sender, args) =>
@@ -18,7 +19,7 @@ sealed class Program
             var mainBuilder = Builder.NewFromFile("UiFiles/MainWindow.ui");
             var window = (ApplicationWindow)mainBuilder.GetObject("MainWindow")!;
 
-            window.SetIconName("shelly"); 
+            window.SetIconName("shelly");
             window.Application = application;
 
             var menuBuilder = Builder.NewFromFile("UiFiles/MainMenu.ui");
@@ -38,10 +39,10 @@ sealed class Program
             application.AddAction(aboutAction);
 
             var contentArea = (Box)mainBuilder.GetObject("ContentArea")!;
-    
 
-            var homeBox = HomeWindow.CreateWindow();
-            contentArea.Append(homeBox);
+
+            var homeWindow = serviceProvider.GetRequiredService<HomeWindow>();
+            contentArea.Append(homeWindow.CreateWindow());
 
             window.Show();
         };
@@ -49,11 +50,14 @@ sealed class Program
         return application.Run(args);
     }
 
-    private static void CreateDependencyInjection()
+    private static ServiceProvider CreateDependencyInjection(ServiceCollection collection)
     {
-        _serviceCollection = [];
-        _serviceCollection.AddSingleton<IPrivilegedOperationService, PrivilegedOperationService>();
-        _serviceCollection.AddSingleton<IUnprivilegedOperationService, UnprivilegedOperationService>();
-        _serviceCollection.AddTransient<HomeWindow>();
+        collection.AddSingleton<IPrivilegedOperationService, PrivilegedOperationService>();
+        collection.AddSingleton<IUnprivilegedOperationService, UnprivilegedOperationService>();
+        collection.AddSingleton<ICredentialManager, CredentialManager>();
+        collection.AddSingleton<IAlpmEventService, AlpmEventService>();
+        collection.AddSingleton<IConfigService, ConfigService>();
+        collection.AddTransient<HomeWindow>();
+        return collection.BuildServiceProvider();
     }
 }
