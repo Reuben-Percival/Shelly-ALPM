@@ -1,12 +1,11 @@
 using Gtk;
 using Shelly.Gtk.Helpers;
 using Shelly.Gtk.Services;
-using Shelly.Gtk.UiModels.PackageManagerObjects;
 using Shelly.Gtk.UiModels.PackageManagerObjects.GObjects;
 
 namespace Shelly.Gtk.Windows.Packages;
 
-public class PackageManagement(IPrivilegedOperationService privilegedOperationService) : IShellyWindow
+public class PackageManagement(IPrivilegedOperationService privilegedOperationService, ILockoutService lockoutService) : IShellyWindow
 {
     private Box _box = null!;
     private ColumnView _columnView = null!;
@@ -203,6 +202,7 @@ public class PackageManagement(IPrivilegedOperationService privilegedOperationSe
         {
             try
             {
+                lockoutService.Show($"Removing...");
                 var result = await privilegedOperationService.RemovePackagesAsync(selectedPackages, false, false);
                 await LoadDataAsync();
             }
@@ -212,6 +212,7 @@ public class PackageManagement(IPrivilegedOperationService privilegedOperationSe
             }
             finally
             {
+                lockoutService.Hide();
                 //always exit globally busy in case of failure
             }
         }

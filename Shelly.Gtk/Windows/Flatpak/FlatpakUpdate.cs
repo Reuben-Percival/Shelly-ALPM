@@ -4,7 +4,7 @@ using Shelly.Gtk.UiModels.PackageManagerObjects;
 
 namespace Shelly.Gtk.Windows.Flatpak;
 
-public class FlatpakUpdate(IUnprivilegedOperationService unprivilegedOperationService) : IShellyWindow
+public class FlatpakUpdate(IUnprivilegedOperationService unprivilegedOperationService, ILockoutService lockoutService) : IShellyWindow
 {
     private ListView? _listView;
     private Gio.ListStore? _listStore;
@@ -145,12 +145,21 @@ public class FlatpakUpdate(IUnprivilegedOperationService unprivilegedOperationSe
     
     private async Task UpdateAllCommand()
     {
-        var result = await unprivilegedOperationService.FlatpakUpgrade();
-        if (!result.Success)
+        try
         {
-            Console.WriteLine($@"Failed to update packages: {result.Error}");
-        }
+            lockoutService.Show("Updating Flatpak packages...", 0, true);
+            var result = await unprivilegedOperationService.FlatpakUpgrade();
+            
+            if (!result.Success)
+            {
+                Console.WriteLine($@"Failed to update packages: {result.Error}");
+            }
 
-        await LoadDataAsync();
+            await LoadDataAsync();
+        }
+        finally
+        {
+            lockoutService.Hide();
+        }
     }
 }

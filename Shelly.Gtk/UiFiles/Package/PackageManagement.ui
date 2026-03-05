@@ -38,6 +38,7 @@
     </child>
     <child>
       <object class="GtkScrolledWindow">
+        <property name="overlay-scrolling">false</property>
         <property name="vexpand">true</property>
         <child>
           <object class="GtkColumnView" id="package_grid">

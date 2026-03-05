@@ -5,7 +5,7 @@ using Shelly.Gtk.UiModels.PackageManagerObjects;
 
 namespace Shelly.Gtk.Windows.Flatpak;
 
-public class FlatpakInstall(IUnprivilegedOperationService unprivilegedOperationService) : IShellyWindow
+public class FlatpakInstall(IUnprivilegedOperationService unprivilegedOperationService, ILockoutService lockoutService) : IShellyWindow
 {
     private ListView? _listView;
     private Gio.ListStore? _listStore;
@@ -48,7 +48,7 @@ public class FlatpakInstall(IUnprivilegedOperationService unprivilegedOperationS
             ApplyFilter();
         };
 
-        _categoryDropDown.OnNotify += (sender, args) =>
+        _categoryDropDown.OnNotify += (_, args) =>
         {
             if (args.Pspec.GetName() != "selected") return;
             _selectedCategory = (FlatpakCategories)_categoryDropDown.GetSelected();
@@ -126,6 +126,7 @@ public class FlatpakInstall(IUnprivilegedOperationService unprivilegedOperationS
     {
         try
         {
+            lockoutService.Show("Loading available Flatpak packages...", 0, false);
             await unprivilegedOperationService.FlatpakSyncRemoteAppstream();
             _allPackages = await unprivilegedOperationService.ListAppstreamFlatpak();
             GLib.Functions.IdleAdd(0, () =>
@@ -137,6 +138,10 @@ public class FlatpakInstall(IUnprivilegedOperationService unprivilegedOperationS
         catch (Exception e)
         {
             Console.WriteLine($"Failed to load installed packages: {e.Message}");
+        }
+        finally
+        {
+            lockoutService.Hide();
         }
     }
 
@@ -156,7 +161,7 @@ public class FlatpakInstall(IUnprivilegedOperationService unprivilegedOperationS
         if (_selectedCategory != FlatpakCategories.None)
         {
             var categoryName = _selectedCategory.ToString();
-            filtered = filtered.Where(p => p.Categories != null && p.Categories.Contains(categoryName, StringComparer.OrdinalIgnoreCase));
+            filtered = filtered.Where(p => p.Categories.Contains(categoryName, StringComparer.OrdinalIgnoreCase));
         }
 
         _listStore.RemoveAll();
@@ -173,15 +178,23 @@ public class FlatpakInstall(IUnprivilegedOperationService unprivilegedOperationS
         if (selectedItem is not StringObject stringObj) return;
         
         var packageId = stringObj.GetString();
-        var result = await unprivilegedOperationService.InstallFlatpakPackage(packageId);
-        
-        if (!result.Success)
+        try
         {
-            Console.WriteLine($"Failed to remove package {packageId}: {result.Error}");
+            lockoutService.Show($"Installing {packageId}...");
+            var result = await unprivilegedOperationService.InstallFlatpakPackage(packageId);
+            
+            if (!result.Success)
+            {
+                Console.WriteLine($"Failed to install package {packageId}: {result.Error}");
+            }
+            else
+            {
+                await LoadDataAsync();
+            }
         }
-        else
+        finally
         {
-            await LoadDataAsync();
+            lockoutService.Hide();
         }
     }
 }

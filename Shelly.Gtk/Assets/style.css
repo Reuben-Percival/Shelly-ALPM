@@ -25,3 +25,35 @@
 .nav-button button:hover {
     background: alpha(currentColor, 0.1);
 }
+
+.lockout-overlay {
+    background-color: rgba(0, 0, 0, 0.7);
+}
+
+.lockout-description {
+    font-size: 1.2em;
+    font-weight: bold;
+    color: white;
+}
+
+#LockoutProgressBar {
+    min-height: 12px;
+}
+
+columnview header,
+columnview header > button {
+    border-radius: 0;
+    border: none;
+    box-shadow: none;
+    background-color: transparent;
+}
+
+columnview header:hover,
+columnview header > button:hover {
+    background-color: alpha(currentColor, 0.1);
+}
+
+columnview header:checked,
+columnview header > button:checked {
+    background-color: alpha(currentColor, 0.2);
+}

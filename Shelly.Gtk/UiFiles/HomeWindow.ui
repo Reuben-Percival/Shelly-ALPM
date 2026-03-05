@@ -27,6 +27,7 @@
         </child>
         <child>
           <object class="GtkScrolledWindow">
+            <property name="overlay-scrolling">false</property>
             <property name="has-frame">true</property>
             <property name="vexpand">true</property>
             <property name="hscrollbar-policy">never</property>
@@ -63,6 +64,7 @@
             </child>
             <child>
              <object class="GtkScrolledWindow">
+               <property name="overlay-scrolling">false</property>
                <property name="has-frame">true</property>
                <property name="vexpand">true</property>
                <property name="hscrollbar-policy">never</property>
@@ -80,6 +82,7 @@
         </child>
         <child>
           <object class="GtkScrolledWindow">
+            <property name="overlay-scrolling">false</property>
             <property name="has-frame">true</property>
             <property name="hscrollbar-policy">never</property>
             <property name="vscrollbar-policy">never</property>

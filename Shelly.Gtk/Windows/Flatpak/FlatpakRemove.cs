@@ -4,7 +4,7 @@ using Shelly.Gtk.UiModels.PackageManagerObjects;
 
 namespace Shelly.Gtk.Windows.Flatpak;
 
-public class FlatpakRemove(IUnprivilegedOperationService unprivilegedOperationService) : IShellyWindow
+public class FlatpakRemove(IUnprivilegedOperationService unprivilegedOperationService, ILockoutService lockoutService) : IShellyWindow
 {
     private ListView? _listView;
     private Gio.ListStore? _listStore;
@@ -149,15 +149,23 @@ public class FlatpakRemove(IUnprivilegedOperationService unprivilegedOperationSe
         if (selectedItem is not StringObject stringObj) return;
         
         var packageId = stringObj.GetString();
-        var result = await unprivilegedOperationService.RemoveFlatpakPackage(packageId);
-        
-        if (!result.Success)
+        try
         {
-            Console.WriteLine($"Failed to remove package {packageId}: {result.Error}");
+            lockoutService.Show($"Removing {packageId}...", 0, true);
+            var result = await unprivilegedOperationService.RemoveFlatpakPackage(packageId);
+            
+            if (!result.Success)
+            {
+                Console.WriteLine($"Failed to remove package {packageId}: {result.Error}");
+            }
+            else
+            {
+                await LoadDataAsync();
+            }
         }
-        else
+        finally
         {
-            await LoadDataAsync();
+            lockoutService.Hide();
         }
     }
 }

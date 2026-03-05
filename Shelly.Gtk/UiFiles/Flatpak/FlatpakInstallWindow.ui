@@ -48,6 +48,7 @@
     </child>
     <child>
       <object class="GtkScrolledWindow">
+        <property name="overlay-scrolling">false</property>
         <property name="vexpand">true</property>
         <property name="hexpand">true</property>
         <child>

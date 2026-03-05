@@ -2,6 +2,7 @@
 using Microsoft.Extensions.DependencyInjection;
 using Shelly.Gtk.Services;
 using Shelly.Gtk.Windows;
+using Shelly.Gtk.Windows.AUR;
 using Shelly.Gtk.Windows.Dialog;
 using Shelly.Gtk.Windows.Flatpak;
 using Shelly.Gtk.Windows.Packages;
@@ -17,7 +18,7 @@ sealed class Program
 
         var application = global::Gtk.Application.New("com.shellyorg.shelly", Gio.ApplicationFlags.DefaultFlags);
 
-        application.OnActivate += (sender, args) =>
+        application.OnActivate += (sender, _) =>
         {
             var cssProvider = CssProvider.New();
             cssProvider.LoadFromPath("Assets/style.css");
@@ -34,15 +35,15 @@ sealed class Program
             application.Menubar = appMenu;
 
             var quitAction = Gio.SimpleAction.New("quit", null);
-            quitAction.OnActivate += (sender, args) => application.Quit();
+            quitAction.OnActivate += (_, _) => application.Quit();
             application.AddAction(quitAction);
 
             var preferencesAction = Gio.SimpleAction.New("preferences", null);
-            preferencesAction.OnActivate += (sender, args) => Console.WriteLine("Preferences clicked");
+            preferencesAction.OnActivate += (_, _) => Console.WriteLine("Preferences clicked");
             application.AddAction(preferencesAction);
 
             var aboutAction = Gio.SimpleAction.New("about", null);
-            aboutAction.OnActivate += (sender, args) => Console.WriteLine("About clicked");
+            aboutAction.OnActivate += (_, _) => Console.WriteLine("About clicked");
             application.AddAction(aboutAction);
 
             var contentArea = (Box)mainBuilder.GetObject("ContentArea")!;
@@ -63,10 +64,10 @@ sealed class Program
 
             AddAction("install-packages", NavigateTo<PackageInstall>);
             AddAction("update-packages", NavigateTo<HomeWindow>); // Placeholder
-            AddAction("manage-packages", NavigateTo<PackageManagement>); // Placeholder
+            AddAction("manage-packages", NavigateTo<PackageManagement>);
 
             // AUR Actions
-            AddAction("install-aur", NavigateTo<HomeWindow>); // Placeholder
+            AddAction("install-aur", NavigateTo<AurInstall>);
             AddAction("update-aur", NavigateTo<HomeWindow>); // Placeholder
             AddAction("remove-aur", NavigateTo<HomeWindow>); // Placeholder
 
@@ -92,6 +93,29 @@ sealed class Program
 
 
             window.Show();
+
+            var lockoutService = serviceProvider.GetRequiredService<ILockoutService>();
+
+            var lockoutOverlay = (Box)mainBuilder.GetObject("LockoutOverlay")!;
+            var lockoutDescription = (Label)mainBuilder.GetObject("LockoutDescription")!;
+            var lockoutProgressBar = (ProgressBar)mainBuilder.GetObject("LockoutProgressBar")!;
+
+            lockoutService.StatusChanged += (_, lockoutArgs) =>
+            {
+                GLib.Functions.IdleAdd(0, () =>
+                {
+                    lockoutOverlay.Visible = lockoutArgs.IsLocked;
+                    if (!lockoutArgs.IsLocked) return false;
+                    lockoutDescription.SetText(lockoutArgs.Description ?? "Processing...");
+                    lockoutProgressBar.Fraction = lockoutArgs.Progress / 100.0;
+                    if (lockoutArgs.IsIndeterminate)
+                    {
+                        lockoutProgressBar.Pulse();
+                    }
+                    return false;
+                });
+            };
+
             return;
 
             void AddAction(string name, Action onActivate)
@@ -112,8 +136,10 @@ sealed class Program
         collection.AddSingleton<ICredentialManager, CredentialManager>();
         collection.AddSingleton<IAlpmEventService, AlpmEventService>();
         collection.AddSingleton<IConfigService, ConfigService>();
+        collection.AddSingleton<ILockoutService, LockoutService>();
         collection.AddTransient<HomeWindow>();
         collection.AddTransient<FlatpakRemove>();
+        collection.AddTransient<AurInstall>();
         collection.AddTransient<FlatpakInstall>();
         collection.AddTransient<FlatpakUpdate>();
         collection.AddTransient<PackageManagement>();
