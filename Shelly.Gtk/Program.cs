@@ -2,9 +2,9 @@
 using Microsoft.Extensions.DependencyInjection;
 using Shelly.Gtk.Services;
 using Shelly.Gtk.Windows;
+using Shelly.Gtk.Windows.Dialog;
 using Shelly.Gtk.Windows.Flatpak;
 using Shelly.Gtk.Windows.Packages;
-using Shelly.Gtk.Windows.Standard;
 
 namespace Shelly.Gtk;
 
@@ -59,9 +59,9 @@ sealed class Program
             }
 
             homeButton.OnClicked += (_, _) => NavigateTo<HomeWindow>();
-            settingsButton.OnClicked += (_, _) => NavigateTo<FlatpakUpdate>(); 
+            settingsButton.OnClicked += (_, _) => NavigateTo<FlatpakUpdate>();
 
-            AddAction("install-packages", NavigateTo<StandardInstall>); 
+            AddAction("install-packages", NavigateTo<PackageInstall>);
             AddAction("update-packages", NavigateTo<HomeWindow>); // Placeholder
             AddAction("manage-packages", NavigateTo<PackageManagement>); // Placeholder
 
@@ -78,16 +78,26 @@ sealed class Program
             var initialHomeWindow = serviceProvider.GetRequiredService<HomeWindow>();
             contentArea.Append(initialHomeWindow.CreateWindow());
 
+            //Subscribing to credential required to trigger dialog
+            var credentialManager = serviceProvider.GetRequiredService<ICredentialManager>();
+            credentialManager.CredentialRequested += (s, e) =>
+            {
+                GLib.Functions.IdleAdd(0, () =>
+                {
+                    var dialog = serviceProvider.GetRequiredService<PasswordDialog>();
+                    dialog.ShowPasswordDialog(e.Reason);
+                    return false;
+                });
+            };
+
+
             window.Show();
             return;
 
             void AddAction(string name, Action onActivate)
             {
                 var action = Gio.SimpleAction.New(name, null);
-                action.OnActivate += (_, _) =>
-                {
-                    onActivate();
-                };
+                action.OnActivate += (_, _) => { onActivate(); };
                 application.AddAction(action);
             }
         };
@@ -107,7 +117,8 @@ sealed class Program
         collection.AddTransient<FlatpakInstall>();
         collection.AddTransient<FlatpakUpdate>();
         collection.AddTransient<PackageManagement>();
-        collection.AddTransient<StandardInstall>();
+        collection.AddTransient<PackageInstall>();
+        collection.AddTransient<PasswordDialog>();
         return collection.BuildServiceProvider();
     }
 }

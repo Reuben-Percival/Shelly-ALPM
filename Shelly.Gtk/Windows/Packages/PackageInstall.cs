@@ -1,8 +1,8 @@
 using Gtk;
 
-namespace Shelly.Gtk.Windows.Standard;
+namespace Shelly.Gtk.Windows.Packages;
 
-public class StandardInstall : IShellyWindow
+public class PackageInstall : IShellyWindow
 {
     public Widget CreateWindow()
     {
