@@ -208,8 +208,6 @@ public class AurInstall(
             {
                 lockoutService.Show($"Installing...");
                 
-              
-
                 var packageBuilds = await privilegedOperationService.GetAurPackageBuild(selectedPackages);
 
                 if (packageBuilds.Count == 0)

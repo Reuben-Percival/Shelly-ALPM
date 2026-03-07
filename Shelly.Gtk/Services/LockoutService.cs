@@ -6,9 +6,14 @@ public partial class LockoutService : ILockoutService
 {
     private static readonly Regex FlatpakProgressPattern =
         FlatpakRegex();
-    
+
     private static readonly Regex AurProgressPattern =
         AurRegex();
+
+    private static readonly Regex AlpmProgressPattern =
+        AlpmRegex();
+
+    private readonly Lock _lock = new();
 
     public event EventHandler<ILockoutService.LockoutStatusEventArgs>? StatusChanged;
 
@@ -22,32 +27,41 @@ public partial class LockoutService : ILockoutService
 
     public void Show(string description, double progress = 0, bool isIndeterminate = true)
     {
-        _consoleLogService ??= new ConsoleLogService(this);
-        _consoleLogService.Start();
+        _stderrLogService ??= new ConsoleLogService(this, true);
+        _stderrLogService.Start();
 
-        IsLocked = true;
-        Description = description;
-        Progress = progress;
-        IsIndeterminate = isIndeterminate;
+        lock (_lock)
+        {
+            IsLocked = true;
+            Description = description;
+            Progress = progress;
+            IsIndeterminate = isIndeterminate;
+        }
         NotifyChanged();
     }
 
     private void Update(string? description = null, double? progress = null, bool? isIndeterminate = null)
     {
-        if (description != null) Description = description;
-        if (progress != null) Progress = progress.Value;
-        if (isIndeterminate != null) IsIndeterminate = isIndeterminate.Value;
+        lock (_lock)
+        {
+            if (description != null) Description = description;
+            if (progress != null) Progress = progress.Value;
+            if (isIndeterminate != null) IsIndeterminate = isIndeterminate.Value;
+        }
         NotifyChanged();
     }
 
     public void Hide()
     {
-        IsLocked = false;
-        _consoleLogService?.Stop();
+        lock (_lock)
+        {
+            IsLocked = false;
+        }
+        _stderrLogService?.Stop();
         NotifyChanged();
     }
-
-    private ConsoleLogService? _consoleLogService;
+    
+    private ConsoleLogService? _stderrLogService;
 
     private class LogObserver(LockoutService service) : IObserver<string?>
     {
@@ -65,37 +79,64 @@ public partial class LockoutService : ILockoutService
     {
         if (string.IsNullOrEmpty(logLine)) return;
 
-        var match = FlatpakProgressPattern.Match(logLine);
+        var matchFlatpak = FlatpakProgressPattern.Match(logLine);
         var matchAur = AurProgressPattern.Match(logLine);
+        var matchAlpm = AlpmProgressPattern.Match(logLine);
 
-        if (match.Success)
+        if (matchFlatpak.Success)
         {
-            if (!double.TryParse(match.Groups[1].Value, out var progress)) return;
-            var description = match.Groups[2].Value;
+            if (!double.TryParse(matchFlatpak.Groups[1].Value, out var progress)) return;
+            var description = matchFlatpak.Groups[2].Value;
             Update(description, progress, false);
         }
-        if (matchAur.Success)
+        else if (matchAur.Success)
         {
             var progress = matchAur.Groups[1].Value;
             var description = matchAur.Groups[2].Value;
             Update(description, double.Parse(progress), false);
         }
-      
+        else if (matchAlpm.Success)
+        {
+            var status = matchAlpm.Groups[1].Value;
+            var pkg = matchAlpm.Groups[2].Value;
+            if (double.TryParse(matchAlpm.Groups[3].Value, out var progress))
+            {
+                Update($"{status} {pkg}", progress, false);
+            }
+        }
     }
 
     private void NotifyChanged()
     {
+        bool locked;
+        double prog;
+        bool indet;
+        string? desc;
+
+        lock (_lock)
+        {
+            locked = IsLocked;
+            prog = Progress;
+            indet = IsIndeterminate;
+            desc = Description;
+        }
+
         StatusChanged?.Invoke(this, new ILockoutService.LockoutStatusEventArgs
         {
-            IsLocked = IsLocked,
-            Description = Description,
-            Progress = Progress,
-            IsIndeterminate = IsIndeterminate
+            IsLocked = locked,
+            Description = desc,
+            Progress = prog,
+            IsIndeterminate = indet
         });
     }
 
     [GeneratedRegex(@"\[DEBUG_LOG\]\s*Progress:\s*(\d+)%\s*-\s*(.+)", RegexOptions.Compiled)]
     private static partial Regex FlatpakRegex();
+
     [GeneratedRegex(@"Percent:\s*(\d+)%\s+Message:\s*(.+)", RegexOptions.Compiled)]
     private static partial Regex AurRegex();
+
+    [GeneratedRegex(@"ALPM Progress: (\w+), Pkg: ([^,]+), %: (\d+)(?:, bytesRead: (\d+), totalBytes: (\d+))?",
+        RegexOptions.Compiled)]
+    private static partial Regex AlpmRegex();
 }

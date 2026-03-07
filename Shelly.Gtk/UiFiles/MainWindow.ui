@@ -68,9 +68,9 @@
                       <object class="GtkMenuButton" id="PackagesMenuButton">
                         <property name="menu-model">PackagesMenu</property>
                         <property name="has-frame">false</property>
-                        <style>
-                          <class name="nav-button"/>
-                        </style>
+                        <property name="always-show-arrow">False</property>
+                          <property name="direction">none</property>
+                       
                       
                         <child>
                           <object class="GtkBox">

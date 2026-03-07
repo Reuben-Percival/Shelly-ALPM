@@ -63,7 +63,7 @@ sealed class Program
             settingsButton.OnClicked += (_, _) => NavigateTo<FlatpakUpdate>();
 
             AddAction("install-packages", NavigateTo<PackageInstall>);
-            AddAction("update-packages", NavigateTo<HomeWindow>); // Placeholder
+            AddAction("update-packages", NavigateTo<PackageUpdate>); // Placeholder
             AddAction("manage-packages", NavigateTo<PackageManagement>);
 
             // AUR Actions
@@ -145,6 +145,7 @@ sealed class Program
         collection.AddTransient<FlatpakInstall>();
         collection.AddTransient<FlatpakUpdate>();
         collection.AddTransient<PackageManagement>();
+        collection.AddTransient<PackageUpdate>();
         collection.AddTransient<PackageInstall>();
         collection.AddTransient<PasswordDialog>();
         return collection.BuildServiceProvider();
