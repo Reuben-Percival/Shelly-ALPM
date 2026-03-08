@@ -8,6 +8,7 @@ public partial class AlpmPackageGObject
 {
     public AlpmPackageDto? Package { get; set; }
     public bool IsSelected { get; set; }
+    public bool IsInstalled { get; set; }
 
     public event EventHandler? OnSelectionToggled;
 

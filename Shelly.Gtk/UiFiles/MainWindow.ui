@@ -145,7 +145,7 @@
                     </child>
                       <child>
                       <object class="GtkSearchEntry" id="MainSearchEntry">
-                        <property name="placeholder-text">Search all repositories...</property>
+                        <property name="placeholder-text">Search all sources...</property>
                         <property name="width-request">250</property>
                         <property name="margin-start">10</property>
                         <property name="margin-end">10</property>

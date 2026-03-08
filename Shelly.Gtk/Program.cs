@@ -26,7 +26,7 @@ sealed class Program
         {
             //Tray service will need to be update to point at GTK Install
             //or tray service will need to know if avalonia or GTK started it.
-            //TrayStartService.Start();
+            TrayStartService.Start();
             
             var cssProvider = CssProvider.New();
             cssProvider.LoadFromString(ResourceHelper.LoadAsset("Assets/style.css"));
@@ -141,6 +141,15 @@ sealed class Program
                 GLib.Functions.IdleAdd(0, () =>
                 {
                     GenericQuestionDialog.ShowGenericQuestionDialog(mainOverlay, e);
+                    return false;
+                });
+            };
+
+            genericQuestionService.PackageBuildRequested += (s, e) =>
+            {
+                GLib.Functions.IdleAdd(0, () =>
+                {
+                    PackageBuildDialog.ShowPackageBuildDialog(mainOverlay, e);
                     return false;
                 });
             };

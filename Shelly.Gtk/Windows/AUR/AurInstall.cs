@@ -241,10 +241,15 @@ public class AurInstall(
 
                 foreach (var pkgbuild in packageBuilds)
                 {
-                    /*var dialog = new PackageBuildDialog();
-                    var dialogResult = pkgbuild.PkgBuild != null && await dialog.ShowDialog($"Displaying Package Build {pkgbuild.Name}",
-                        pkgbuild.PkgBuild);
-                    if (!dialogResult) return;*/
+                    if (pkgbuild.PkgBuild == null) continue;
+                    
+                    var buildArgs = new PackageBuildEventArgs($"Displaying Package Build {pkgbuild.Name}", pkgbuild.PkgBuild);
+                    genericQuestionService.RaisePackageBuild(buildArgs);
+                    
+                    if (!await buildArgs.ResponseTask)
+                    {
+                        return;
+                    }
                 }
                 
                 var result = await privilegedOperationService.InstallAurPackagesAsync(selectedPackages);

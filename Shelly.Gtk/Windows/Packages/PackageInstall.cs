@@ -120,16 +120,28 @@ public class PackageInstall(IPrivilegedOperationService privilegedOperationServi
         _nameFactory.OnSetup += (_, args) =>
         {
             var listItem = (ListItem)args.Object;
+            var box = Box.New(Orientation.Horizontal, 6);
             var label = Label.New(string.Empty);
-            listItem.SetChild(label);
+            var installedIcon = Image.NewFromIconName("object-select-symbolic");
+            
+            box.Append(label);
+            box.Append(installedIcon);
+            listItem.SetChild(box);
         };
         _nameFactory.OnBind += (_, args) =>
         {
             var listItem = (ListItem)args.Object;
-            if (listItem.GetItem() is not AlpmPackageGObject { Package: { } pkg } ||
-                listItem.GetChild() is not Label label) return;
-            label.SetText(pkg.Name);
+            if (listItem.GetItem() is not AlpmPackageGObject pkgObj || pkgObj.Package == null ||
+                listItem.GetChild() is not Box box) return;
+
+            var label = (Label)box.GetFirstChild()!;
+            var installedIcon = (Image)label.GetNextSibling()!;
+
+            label.SetText(pkgObj.Package.Name);
             label.Halign = Align.Start;
+            
+            installedIcon.Visible = pkgObj.IsInstalled;
+            installedIcon.TooltipText = "Installed";
         };
         nameColumn.SetFactory(_nameFactory);
 
@@ -211,15 +223,12 @@ public class PackageInstall(IPrivilegedOperationService privilegedOperationServi
         _filterListModel.Dispose();
         _filter.Dispose();
         _listStore.Dispose();
-
-
+        
         _checkBinding.Clear();
         _checkBinding = null!;
-
-
+        
         _packages = null!;
-
-
+        
         _columnView = null!;
         _overlay = null!;
         
@@ -239,9 +248,18 @@ public class PackageInstall(IPrivilegedOperationService privilegedOperationServi
         try
         {
             _packages = await privilegedOperationService.GetAvailablePackagesAsync();
+            var installedPackages = await privilegedOperationService.GetInstalledPackagesAsync();
+            var installedNames = new HashSet<string>(installedPackages?.Select(x => x.Name) ?? []);
+            
             ct.ThrowIfCancellationRequested();
             var queue = new Queue<AlpmPackageDto>(_packages);
 
+            GLib.Functions.IdleAdd(0, () =>
+            {
+                _listStore.RemoveAll();
+                return false;
+            });
+            
             GLib.Functions.IdleAdd(0, () =>
             {
                 _listStore.RemoveAll();
@@ -262,7 +280,8 @@ public class PackageInstall(IPrivilegedOperationService privilegedOperationServi
                 var batch = new List<AlpmPackageGObject>();
                 while (queue.Count > 0 && count < batchSize)
                 {
-                    batch.Add(new AlpmPackageGObject() { Package = queue.Dequeue() });
+                    var dequeued = queue.Dequeue();
+                    batch.Add(new AlpmPackageGObject() { Package = dequeued, IsInstalled = installedNames.Contains(dequeued.Name)});
                     count++;
                 }
 

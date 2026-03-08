@@ -6,15 +6,12 @@
     <property name="spacing">10</property>
     <child>
       <object class="GtkBox">
-        <property name="spacing">6</property>
-        <property name="margin-top">6</property>
-        <property name="margin-bottom">6</property>
-        <property name="margin-start">6</property>
-        <property name="margin-end">6</property>
+        <property name="spacing">5</property>
+       
         <property name="hexpand">true</property>
         <child>
           <object class="GtkButton" id="install_button">
-            <property name="label">Install</property>
+            <property name="label">Install Package(s)</property>
             <style>
               <class name="suggested-action"/>
             </style>

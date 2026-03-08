@@ -211,6 +211,24 @@ public class AurUpdate(IPrivilegedOperationService privilegedOperationService, I
             {
                 lockoutService.Show($"Installing...");
                 
+                var packageBuilds = await privilegedOperationService.GetAurPackageBuild(selectedPackages);
+
+                if (packageBuilds.Count != 0)
+                {
+                    foreach (var pkgbuild in packageBuilds)
+                    {
+                        if (pkgbuild.PkgBuild == null) continue;
+                        
+                        var buildArgs = new PackageBuildEventArgs($"Displaying Package Build {pkgbuild.Name}", pkgbuild.PkgBuild);
+                        genericQuestionService.RaisePackageBuild(buildArgs);
+                        
+                        if (!await buildArgs.ResponseTask)
+                        {
+                            return;
+                        }
+                    }
+                }
+                
                 try
                 {
                     //do work

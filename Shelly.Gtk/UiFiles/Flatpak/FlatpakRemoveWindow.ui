@@ -3,15 +3,12 @@
   <requires lib="gtk" version="4.0"/>
   <object class="GtkBox" id="FlatpakRemoveWindow">
     <property name="orientation">vertical</property>
-    <property name="margin-start">20</property>
-    <property name="margin-end">20</property>
-    <property name="margin-top">20</property>
-    <property name="margin-bottom">20</property>
-    <property name="spacing">15</property>
     <child>
       <object class="GtkBox">
         <property name="orientation">horizontal</property>
-        <property name="spacing">8</property>
+        <property name="spacing">5</property>
+        <property name="margin-bottom">10</property>
+        <property name="halign">baseline</property>
         <child>
           <object class="GtkButton" id="remove_button">
             <property name="label">Remove Selected</property>

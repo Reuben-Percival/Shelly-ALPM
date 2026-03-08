@@ -75,3 +75,7 @@ columnview header > button:checked {
     font-size: 0.9em;
     margin-top: 4px;
 }
+
+scrolledwindow > scrollbar {
+    border: none;
+}
