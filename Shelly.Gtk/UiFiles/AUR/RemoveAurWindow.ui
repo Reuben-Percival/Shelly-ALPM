@@ -36,8 +36,8 @@
       </child>
       <child>
         <object class="GtkButton" id="search_button">
-          <property name="icon-name">view-search-symbolic</property>
-          <property name="tooltip-text">search</property>
+          <property name="icon-name">view-refresh-symbolic</property>
+          <property name="tooltip-text">refresh</property>
         </object>
       </child>
     </object>

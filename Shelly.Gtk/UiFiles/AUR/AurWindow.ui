@@ -36,7 +36,7 @@
       </child>
       <child>
         <object class="GtkButton" id="search_button">
-          <property name="icon-name">view-search-symbolic</property>
+          <property name="icon-name">system-search-symbolic</property>
           <property name="tooltip-text">search</property>
         </object>
       </child>
