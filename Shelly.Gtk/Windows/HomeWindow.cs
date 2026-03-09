@@ -81,7 +81,7 @@ public class HomeWindow(
             dialog.SetFilters(filters);
 
             var file = await dialog.SaveAsync((Window)_box.GetRoot()!);
- 
+
             if (file is not null)
             {
                 var path = file.GetPath()!;
@@ -92,7 +92,7 @@ public class HomeWindow(
                 foreach (var pkg in packages)
                 {
                     stringBuilder.AppendLine(
-                        $"{pkg.Name} - {pkg.Version} : Depends: {string.Join(",",pkg.Depends)} OptDepends {string.Join(",",pkg.OptDepends)}");
+                        $"{pkg.Name} - {pkg.Version} : Depends: {string.Join(",", pkg.Depends)} OptDepends {string.Join(",", pkg.OptDepends)}");
                 }
 
                 await System.IO.File.WriteAllTextAsync(path, stringBuilder.ToString());
