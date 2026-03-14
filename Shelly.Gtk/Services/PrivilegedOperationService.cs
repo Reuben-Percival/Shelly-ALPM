@@ -170,6 +170,16 @@ public class PrivilegedOperationService : IPrivilegedOperationService
     {
         return await ExecutePrivilegedCommandAsync("Force synchronize package databases", "sync", "--force");
     }
+    
+    public async Task<OperationResult> RemoveDbLockAsync()
+    {
+        return await ExecutePrivilegedCommandAsync(
+            "Removing pacman database lock",
+            "rm",
+            "-f",
+            "/var/lib/pacman/db.lck"
+        );
+    }
 
     public async Task<OperationResult> InstallAurPackagesAsync(IEnumerable<string> packages)
     {
@@ -482,7 +492,7 @@ public class PrivilegedOperationService : IPrivilegedOperationService
             };
         }
     }
-
+    
     private async Task<OperationResult> ExecutePrivilegedCommandAsync(string operationDescription, params string[] args)
     {
         // Request credentials if not already available
@@ -838,6 +848,27 @@ public class PrivilegedOperationService : IPrivilegedOperationService
                 ExitCode = -1
             };
         }
+    }
+
+    private async Task<OperationResult> ExecutePrivilegedSystemCommandAsync(string operationDescription,
+        params string[] args)
+    {
+        var hasCredentials = await _credentialManager.RequestCredentialsAsync("Privileged Operation");
+        if (!hasCredentials)
+        {
+            return new OperationResult
+            {
+                Success = false,
+                Output = string.Empty,
+                Error = "Authentication cancelled by user.",
+                ExitCode = -1
+            };
+        }
+    
+        var password = _credentialManager.GetPassword();
+        var isPasswordless = password == "NOPASSWORD67";
+
+
     }
 
     /// <summary>
