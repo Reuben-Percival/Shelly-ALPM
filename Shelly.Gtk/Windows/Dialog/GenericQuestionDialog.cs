@@ -11,7 +11,8 @@ public static class GenericQuestionDialog
         var box = Box.New(Orientation.Vertical, 12);
         box.SetHalign(Align.Center);
         box.SetValign(Align.Center);
-        box.SetSizeRequest(640, -1);
+        box.SetSizeRequest(760, -1);
+        box.SetHexpand(true);
         box.SetMarginTop(20);
         box.SetMarginBottom(20);
         box.SetMarginStart(20);
@@ -56,8 +57,10 @@ public static class GenericQuestionDialog
 
         var scrolledWindow = new ScrolledWindow();
         scrolledWindow.SetPolicy(PolicyType.Never, PolicyType.Automatic);
+        scrolledWindow.SetMinContentWidth(700);
         scrolledWindow.SetMaxContentHeight(300);
         scrolledWindow.SetPropagateNaturalHeight(true);
+        scrolledWindow.SetHexpand(true);
         scrolledWindow.SetChild(messageWidget);
         box.Append(scrolledWindow);
 
