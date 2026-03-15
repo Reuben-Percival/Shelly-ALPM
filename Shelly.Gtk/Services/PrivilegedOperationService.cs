@@ -173,8 +173,8 @@ public class PrivilegedOperationService : IPrivilegedOperationService
     
     public async Task<OperationResult> RemoveDbLockAsync()
     {
-        return await ExecutePrivilegedCommandAsync(
-            "Removing pacman database lock",
+        return await ExecutePrivilegedSystemCommandAsync(
+            "Removing database lock",
             "rm",
             "-f",
             "/var/lib/pacman/db.lck"
@@ -894,6 +894,7 @@ private async Task<OperationResult> ExecutePrivilegedSystemCommandAsync( string 
         {
             await process.StandardInput.WriteLineAsync(password);
             await process.StandardInput.FlushAsync();
+            process.StandardInput.Close();
         }
 
         var outputTask = process.StandardOutput.ReadToEndAsync();

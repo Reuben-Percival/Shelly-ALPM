@@ -16,7 +16,6 @@ public class Settings(
 {
     private Box _box = null!;
     private ShellyConfig _config = null!;
-    private readonly IPrivilegedOperationService _privilegedOperationService;
 
     public event Action? NavigationToHomeRequested;
 
@@ -245,17 +244,17 @@ public class Settings(
 
     private async Task RemoveDbLockAsync()
     {
-        var result = await _privilegedOperationService.RemoveDbLockAsync();
+        var result = await privilegedOperationService.RemoveDbLockAsync();
 
-        if (!result.Success)
+        if (result.Success)
         {
-            Console.Error.WriteLine(result.Error);
+            genericQuestionService.RaiseToastMessage(new ToastMessageEventArgs("Database lock removed"));
         }
         else
         {
-            Console.WriteLine("Pacman Database Lock Removed Successfully");
+            Console.Error.WriteLine($"Failed to remove database lock: {result.Error}");
         }
-    }    
+    }
     
     public void Dispose()
     {
