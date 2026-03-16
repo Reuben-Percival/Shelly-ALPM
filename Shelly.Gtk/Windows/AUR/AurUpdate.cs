@@ -55,7 +55,7 @@ public class AurUpdate(
 
         _updateButton = (Button)builder.GetObject("update_button")!;
         _noPackagesLabel = (Label)builder.GetObject("no_packages_label")!;
-        _noPackagesLabel.Label_ = "Your system is up to date";
+        _noPackagesLabel.Label_ = "<span size='large'>AUR packages are up to date</span>";
         _noPackagesLabel.Visible = false;
         _listStore = Gio.ListStore.New(AurUpdateGObject.GetGType());
         _filter = CustomFilter.New(FilterPackage);
@@ -211,6 +211,8 @@ public class AurUpdate(
                     _listStore.Append(gobject);
                 }
 
+                _noPackagesLabel.Visible = packages.Count == 0;
+                
                 return false;
             });
         }
