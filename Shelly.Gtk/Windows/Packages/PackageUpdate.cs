@@ -42,6 +42,8 @@ public class PackageUpdate(
     private ColumnViewColumn _sizeDiffColumn = null!;
     private Button _refreshButton = null!;
     private Button _updateButton = null!;
+    private Label _noPackagesLabel = null!;
+
 
     public Widget CreateWindow()
     {
@@ -62,7 +64,9 @@ public class PackageUpdate(
         _sizeDiffColumn.Resizable = true;
         _refreshButton = (Button)builder.GetObject("sync_button")!;
         _updateButton = (Button)builder.GetObject("update_button")!;
-
+        _noPackagesLabel = (Label)builder.GetObject("no_packages_label")!;
+        _noPackagesLabel.Label_ = "<span size='large'>System packages are up to date</span>";
+        _noPackagesLabel.Visible = false;
         _listStore = Gio.ListStore.New(AlpmUpdateGObject.GetGType());
         _filter = CustomFilter.New(FilterPackage);
         _filterListModel = FilterListModel.New(_listStore, _filter);
@@ -243,7 +247,7 @@ public class PackageUpdate(
                     _packageGObjectRefs.Add(pkgObj);
                     _listStore.Append(pkgObj);
                 }
-
+                _noPackagesLabel.Visible = packages.Count == 0;
                 return false;
             });
         }
