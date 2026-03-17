@@ -1,3 +1,5 @@
+using System.Diagnostics;
+
 namespace Shelly_Notifications.Services;
 
 public static class AppRunner
@@ -22,8 +24,8 @@ public static class AppRunner
             Console.WriteLine($"[Shell-Notifications][AppRunner] {appName} not found in {optPath} or {appPath}");
             return;
         }
-        
-        var existing = System.Diagnostics.Process.GetProcessesByName(appName);
+
+        var existing = Process.GetProcessesByName(appName);
         if (existing.Length > 0)
         {
             Console.WriteLine($"[Shell-Notifications][AppRunner] {appName} already running");
@@ -31,12 +33,26 @@ public static class AppRunner
         }
 
         Console.WriteLine($"[Shell-Notifications][AppRunner] Launching {targetPath}");
-        System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
+        Process.Start(new ProcessStartInfo
         {
             FileName = targetPath,
             Arguments = args,
             UseShellExecute = false,
             CreateNoWindow = true,
         });
+    }
+
+    public static async Task SpawnTerminalWithCommandAsync(string command)
+    {
+        var terminal = Environment.GetEnvironmentVariable("TERMINAL") ?? "alacritty";
+
+        var process = Process.Start(new ProcessStartInfo
+        {
+            FileName = terminal,
+            Arguments = $"{command}",
+            UseShellExecute = false,
+        });
+
+        await process!.WaitForExitAsync();
     }
 }

@@ -23,7 +23,6 @@ public class UpdateService(DBusMenuHandler? menuHandler = null)
                             NotificationJsonContext.Default.SyncModel);
                     if (updates != null)
                     {
-                        // Notify DBus clients that the Updates menu now has items to display
                         menuHandler?.NotifyChildrenDisplayChanged(updates);
                         return updates.Aur.Count + updates.Flatpaks.Count + updates.Packages.Count;
                     }
@@ -35,7 +34,6 @@ public class UpdateService(DBusMenuHandler? menuHandler = null)
 
             if (allUpdates != null)
             {
-                // Notify DBus clients that the Updates menu now has items to display
                 menuHandler?.NotifyChildrenDisplayChanged(allUpdates);
                 return allUpdates.Aur.Count + allUpdates.Flatpaks.Count + allUpdates.Packages.Count;
             }

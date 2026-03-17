@@ -9,5 +9,6 @@ public enum MenuEnum
     AurUpdate,
     FlatpakUpdate,
     StandardUpdate,
+    LastTime,
     Exit,
 }
