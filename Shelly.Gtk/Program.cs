@@ -328,6 +328,11 @@ sealed class Program
                     return false;
                 }
 
+                if (HasBlockingOverlay())
+                {
+                    return false;
+                }
+
                 var focus = window.GetFocus();
                 if (focus == null)
                 {
@@ -340,6 +345,26 @@ sealed class Program
                 }
 
                 return !IsEditableWidget(focus);
+            }
+
+            bool HasBlockingOverlay()
+            {
+                for (Widget? child = mainOverlay.GetFirstChild(); child != null; child = child.GetNextSibling())
+                {
+                    if (child == mainBox || child == lockoutOverlay || !child.Visible)
+                    {
+                        continue;
+                    }
+
+                    if (child.HasCssClass("toast-message"))
+                    {
+                        continue;
+                    }
+
+                    return true;
+                }
+
+                return false;
             }
 
             bool TryHandleNavigationShortcut(uint keyval, Gdk.ModifierType state)
