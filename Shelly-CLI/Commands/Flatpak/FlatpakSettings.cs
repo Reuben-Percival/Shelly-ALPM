@@ -90,7 +90,7 @@ public class FlatpakListRemoteAppStreamSettings : CommandSettings
 
 public class FlatpakRemoteRefFileInstallSettings : CommandSettings
 {
-    [CommandArgument(0, "<query>")]
+    [CommandArgument(0, "<RefFilePath>")]
     [Description("Path to the ref file")]
     public string RefFilePath { get; init; } = string.Empty;
     
