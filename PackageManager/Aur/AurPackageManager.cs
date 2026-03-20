@@ -261,7 +261,14 @@ public class AurPackageManager(string? configPath = null)
                 }
                 catch (Exception ex2)
                 {
-                    Console.Error.WriteLine($"[Shelly] Failed to install dependency {dep}: {ex2.Message}");
+                    try
+                    {
+                        await MakePkgAndInstallAurDependency(dep);
+                    }
+                    catch (Exception ex3)
+                    {
+                        Console.Error.WriteLine("Failed to install dependency: " + ex3.Message);
+                    }
                 }
             }
         }
@@ -342,7 +349,14 @@ public class AurPackageManager(string? configPath = null)
                         }
                         catch (Exception ex2)
                         {
-                            Console.Error.WriteLine($"[Shelly] Failed to install dependency {dep}: {ex2.Message}");
+                            try
+                            {
+                                await MakePkgAndInstallAurDependency(dep);
+                            }
+                            catch (Exception ex3)
+                            {
+                                Console.Error.WriteLine("Failed to install dependency: " + ex3.Message);
+                            }
                         }
                     }
                 }
@@ -372,7 +386,7 @@ public class AurPackageManager(string? configPath = null)
                 StartInfo = new System.Diagnostics.ProcessStartInfo
                 {
                     FileName = "sudo",
-                    Arguments = $"-u {user} makepkg -f --noconfirm",
+                    Arguments = $"-u {user} makepkg -f --noconfirm --skippgpcheck",
                     WorkingDirectory = tempPath,
                     RedirectStandardOutput = true,
                     RedirectStandardError = true,
@@ -397,7 +411,6 @@ public class AurPackageManager(string? configPath = null)
                     if (!string.IsNullOrEmpty(e.Data))
                         Console.Error.WriteLine($"[Shelly] makepkg: {e.Data}");
                 }
-                
             };
 
             buildProcess.ErrorDataReceived += (sender, e) =>
@@ -574,7 +587,15 @@ public class AurPackageManager(string? configPath = null)
                 }
                 catch (Exception ex2)
                 {
-                    Console.Error.WriteLine("Failed to install dependency: " + ex2.Message);
+                    try
+                    {
+                        await MakePkgAndInstallAurDependency(dep);
+                    }
+                    catch (Exception ex3)
+                    {
+                        Console.Error.WriteLine("Failed to install dependency: " + ex3.Message);
+                    }
+                    
                 }
             }
         }
@@ -961,5 +982,113 @@ public class AurPackageManager(string? configPath = null)
         {
             Console.Error.WriteLine($"Warning: Failed to import from {sourceCachePath}: {ex.Message}");
         }
+    }
+
+    private async Task MakePkgAndInstallAurDependency(string packageName)
+    {
+        var success = await DownloadPackage(packageName);
+        if (!success)
+        {
+            PackageProgress?.Invoke(this, new PackageProgressEventArgs
+            {
+                PackageName = packageName,
+                CurrentIndex = 1,
+                TotalCount = 1,
+                Status = PackageProgressStatus.Failed,
+                Message = "Failed to download package"
+            });
+            return;
+        }
+
+        var user = Environment.GetEnvironmentVariable("SUDO_USER") ?? Environment.UserName;
+        var home = $"/home/{user}";
+        var tempPath = System.IO.Path.Combine(home, ".cache", "Shelly", packageName);
+        PackageProgress?.Invoke(this, new PackageProgressEventArgs
+        {
+            PackageName = packageName,
+            CurrentIndex = 1,
+            TotalCount = 1,
+            Status = PackageProgressStatus.Building,
+            Message = "Building package with makepkg"
+        });
+        var pkgbuildInfo = PkgbuildParser.Parse(System.IO.Path.Combine(tempPath, "PKGBUILD"));
+        var depends = pkgbuildInfo.Depends.Select(x => x.Trim()).ToList();
+        var makeDepends = pkgbuildInfo.MakeDepends.Select(x => x.Trim()).ToList();
+        var allDeps = depends.Concat(makeDepends).Distinct().ToList();
+        var depsToInstall = allDeps.Where(x => !_alpm.IsDependencySatisfiedByInstalled(x)).ToList();
+        if (depsToInstall.Count > 0)
+        {
+            try
+            {
+                _alpm.InstallPackages(depsToInstall);
+            }
+            catch (Exception)
+            {
+                // Fall back to installing one by one
+                foreach (var dep in depsToInstall)
+                {
+                    try
+                    {
+                        var pkgName = _alpm.GetPackageNameFromProvides(dep);
+                        if (!string.IsNullOrEmpty(pkgName))
+                            _alpm.InstallPackage(pkgName);
+                    }
+                    catch (Exception ex2)
+                    {
+                        try
+                        {
+                            await MakePkgAndInstallAurDependency(dep);
+                        }
+                        catch (Exception ex3)
+                        {
+                            Console.Error.WriteLine($"[Shelly] Failed to install dependency {dep}: {ex3.Message}");
+                        }
+                    }
+                }
+            }
+        }
+
+        var buildProcess = new System.Diagnostics.Process
+        {
+            StartInfo = new System.Diagnostics.ProcessStartInfo
+            {
+                FileName = "sudo",
+                Arguments = $"-u {user} makepkg -f --noconfirm --skippgpcheck",
+                WorkingDirectory = tempPath,
+                RedirectStandardOutput = true,
+                RedirectStandardError = true,
+                UseShellExecute = false,
+                CreateNoWindow = true,
+            }
+        };
+        buildProcess.OutputDataReceived += (sender, e) =>
+        {
+            if (e.Data?.Contains('%') == true)
+            {
+                var match = Regex.Match(e.Data, @"\[\s*(?<percent>\d+)%\]\s+(?<message>.+)");
+
+                if (!match.Success) return;
+                var percent = match.Groups["percent"].Value;
+                var message = match.Groups["message"].Value;
+                if (!string.IsNullOrEmpty(e.Data))
+                    Console.Error.WriteLine($"[AUR_PROGRESS]Percent: {percent}% Message: {message}");
+            }
+            else
+            {
+                if (!string.IsNullOrEmpty(e.Data))
+                    Console.Error.WriteLine($"[Shelly] makepkg: {e.Data}");
+            }
+        };
+
+        buildProcess.ErrorDataReceived += (sender, e) =>
+        {
+            if (!string.IsNullOrEmpty(e.Data))
+                Console.Error.WriteLine($"[Shelly] makepkg error: {e.Data}");
+        };
+
+        buildProcess.Start();
+        buildProcess.BeginOutputReadLine();
+        buildProcess.BeginErrorReadLine();
+        await buildProcess.WaitForExitAsync();
     }
 }
