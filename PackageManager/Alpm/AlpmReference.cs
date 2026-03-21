@@ -330,6 +330,42 @@ namespace PackageManager.Alpm
         public static partial int RemoveIgnorePkg(IntPtr handle, string pkg);
 
         /// <summary>
+        /// Gets the list of packages that should be held.
+        /// </summary>
+        /// <param name="handle">The alpm handle.</param>
+        /// <returns>A pointer to a list of package names.</returns>
+        [LibraryImport(LibName, EntryPoint = "alpm_option_get_holdpkgs")]
+        public static partial IntPtr GetHoldPkgs(IntPtr handle);
+
+        /// <summary>
+        /// Adds a package to the hold list.
+        /// </summary>
+        /// <param name="handle">The alpm handle.</param>
+        /// <param name="pkg">The package name.</param>
+        /// <returns>0 on success, -1 on error.</returns>
+        [LibraryImport(LibName, EntryPoint = "alpm_option_add_holdpkg", StringMarshalling = StringMarshalling.Utf8)]
+        public static partial int AddHoldPkg(IntPtr handle, string pkg);
+
+        /// <summary>
+        /// Sets the list of packages that should be held.
+        /// </summary>
+        /// <param name="handle">The alpm handle.</param>
+        /// <param name="holdpkgs">A pointer to a list of package names.</param>
+        /// <returns>0 on success, -1 on error.</returns>
+        [LibraryImport(LibName, EntryPoint = "alpm_option_set_holdpkgs")]
+        public static partial int SetHoldPkgs(IntPtr handle, IntPtr holdpkgs);
+
+        /// <summary>
+        /// Removes a package from the hold list.
+        /// </summary>
+        /// <param name="handle">The alpm handle.</param>
+        /// <param name="pkg">The package name.</param>
+        /// <returns>0 on success, -1 on error.</returns>
+        [LibraryImport(LibName, EntryPoint = "alpm_option_remove_holdpkg",
+            StringMarshalling = StringMarshalling.Utf8)]
+        public static partial int RemoveHoldPkg(IntPtr handle, string pkg);
+
+        /// <summary>
         /// Gets the list of ignored groups.
         /// </summary>
         /// <param name="handle">The alpm handle.</param>

@@ -106,6 +106,11 @@ public class AlpmManager(string configPath = "/etc/pacman.conf") : IDisposable, 
         {
             AddIgnorePkg(_handle,ignorePkg);
         }
+
+        foreach (var holdPkg in _config.HoldPkg)
+        {
+            AddHoldPkg(_handle,holdPkg);
+        }
         
         if (!string.IsNullOrEmpty(_config.GpgDir) && root)
         {
@@ -858,10 +863,12 @@ public class AlpmManager(string configPath = "/etc/pacman.conf") : IDisposable, 
                 updates.Add(update.ToDto());
             }
         }
-
+        
+        updates.RemoveAll(p => _config.IgnorePkg.Contains(p.Name));
+        
         return updates;
     }
-
+    
     private string GetErrorMessage(AlpmErrno error)
     {
         return Marshal.PtrToStringUTF8(StrError(error)) ?? $"Unknown error ({error})";
