@@ -115,6 +115,7 @@ public class PackageInstall(
             else
             {
                 _detailRevealer.SetRevealChild(false);
+                _detailRevealer.SetVisible(false);
                 _currentDetailPkg = null;
             }
         };
@@ -151,6 +152,20 @@ public class PackageInstall(
         {
             _detailBox.Remove(child);
         }
+
+        var backButton = Button.New();
+        backButton.SetIconName("go-previous-symbolic");
+        backButton.Halign = Align.Start;
+        backButton.AddCssClass("flat");
+        backButton.TooltipText = "Close details";
+        backButton.OnClicked += (_, _) =>
+        {
+            _currentDetailPkg = null;
+            _selectionModel.UnselectItem(_selectionModel.GetSelected());
+            _detailRevealer.SetRevealChild(false);
+            _detailRevealer.SetVisible(false);
+        };
+        _detailBox.Append(backButton);
 
         void AddDetail(string label, string value)
         {
@@ -276,6 +291,7 @@ public class PackageInstall(
             }
         }
 
+        _detailRevealer.SetVisible(true);
         _detailRevealer.SetRevealChild(true);
     }
 
