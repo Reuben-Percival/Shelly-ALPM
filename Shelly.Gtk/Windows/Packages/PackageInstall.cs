@@ -14,6 +14,7 @@ namespace Shelly.Gtk.Windows.Packages;
 
 public class PackageInstall(
     IPrivilegedOperationService privilegedOperationService,
+    IUnprivilegedOperationService unprivilegedOperationService,
     ILockoutService lockoutService,
     IConfigService configService,
     IGenericQuestionService genericQuestionService,
@@ -554,7 +555,7 @@ public class PackageInstall(
 
                     if (performUpgradeForDialog)
                     {
-                        var updatesNeeded = await privilegedOperationService.GetPackagesNeedingUpdateAsync();
+                        var updatesNeeded = await unprivilegedOperationService.CheckForStandardApplicationUpdates();
                         if (updatesNeeded.Count > 0)
                         {
                             message += "\n\n--- Packages to Upgrade ---\n";

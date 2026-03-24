@@ -219,7 +219,7 @@ public class UnprivilegedOperationService : IUnprivilegedOperationService
         return await ExecuteUnprivilegedCommandAsync("Remove Remote", "flatpak remove-remotes", remoteName, "--system",
             "true");
     }
-    
+
     public async Task<UnprivilegedOperationResult> FlatpakInsallFromRef(string path, string scope)
     {
         if (scope == "user")
@@ -262,6 +262,35 @@ public class UnprivilegedOperationService : IUnprivilegedOperationService
         }
 
         return 0;
+    }
+
+    public async Task<List<AlpmPackageUpdateDto>> CheckForStandardApplicationUpdates()
+    {
+        var result = await ExecuteUnprivilegedCommandAsync("Get Available Updates", "list-updates --json");
+        try
+        {
+            var lines = result.Output.Split('\n', StringSplitOptions.RemoveEmptyEntries);
+            foreach (var line in lines)
+            {
+                var trimmedLine = StripBom(line.Trim());
+                if (trimmedLine.StartsWith("{") && trimmedLine.EndsWith("}"))
+                {
+                    var updates =
+                        System.Text.Json.JsonSerializer.Deserialize(trimmedLine,
+                            ShellyGtkJsonContext.Default.ListAlpmPackageUpdateDto);
+                    return updates ?? [];
+                }
+            }
+
+            var allUpdates = System.Text.Json.JsonSerializer.Deserialize(StripBom(result.Output.Trim()),
+                ShellyGtkJsonContext.Default.ListAlpmPackageUpdateDto);
+            return allUpdates ?? [];
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Failed to parse updates JSON: {ex.Message}");
+            return [];
+        }
     }
 
     public async Task<UnprivilegedOperationResult> ExportSyncFile(string filePath, string name)

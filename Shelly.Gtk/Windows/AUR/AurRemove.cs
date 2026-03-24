@@ -36,6 +36,7 @@ public class AurRemove(
     private ColumnViewColumn _nameColumn = null!;
     private ColumnViewColumn _versionColumn = null!;
     private Button _removeButton = null!;
+    private CheckButton _cascadeDeleteCheck = null!;
 
 
     public Widget CreateWindow()
@@ -50,6 +51,7 @@ public class AurRemove(
         _versionColumn = (ColumnViewColumn)builder.GetObject("version_column")!;
         _removeButton = (Button)builder.GetObject("remove_button")!;
         _removeButton.SetSensitive(false);
+        _cascadeDeleteCheck = (CheckButton)builder.GetObject("cascade_delete_check")!;
         _listStore = Gio.ListStore.New(AurPackageGObject.GetGType());
         _filter = CustomFilter.New(FilterPackage);
         _filterListModel = FilterListModel.New(_listStore, _filter);
@@ -240,19 +242,25 @@ public class AurRemove(
                 }
             }
 
+
             try
             {
-                lockoutService.Show($"Installing...");
-
-                var result = await privilegedOperationService.RemoveAurPackagesAsync(selectedPackages);
-
-                if (result.Success)
-                    genericQuestionService.RaiseToastMessage(new ToastMessageEventArgs(
-                        $"Updated {selectedPackages.Count} Package(s)"
-                    ));
-                else
+                lockoutService.Show($"Removing...");
+                //do work
+                var result =
+                    await privilegedOperationService.RemoveAurPackagesAsync(selectedPackages,
+                        _cascadeDeleteCheck.Active);
+                if (!result.Success)
+                {
                     Console.WriteLine($"Failed to remove packages: {result.Error}");
-
+                }
+                else
+                {
+                    var args = new ToastMessageEventArgs(
+                        $"Removed {selectedPackages.Count} Package(s)"
+                    );
+                    genericQuestionService.RaiseToastMessage(args);
+                }
                 await LoadDataAsync();
             }
             catch (Exception e)
@@ -263,6 +271,8 @@ public class AurRemove(
             {
                 lockoutService.Hide();
             }
+
+           
         }
     }
 
