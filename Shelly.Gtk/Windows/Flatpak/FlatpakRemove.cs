@@ -175,7 +175,7 @@ public class FlatpakRemove(IUnprivilegedOperationService unprivilegedOperationSe
         try
         {
             lockoutService.Show($"Removing {packageId}...", 0, true);
-            var result = await unprivilegedOperationService.RemoveFlatpakPackage(packageId);
+            var result = await unprivilegedOperationService.RemoveFlatpakPackage(packageId, false);
             
             if (!result.Success)
             {
