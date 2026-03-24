@@ -13,6 +13,7 @@ namespace Shelly.Gtk.Windows.Packages;
 
 public class PackageUpdate(
     IPrivilegedOperationService privilegedOperationService,
+    IUnprivilegedOperationService unprivilegedOperationService,
     ILockoutService lockoutService,
     IConfigService configService,
     IGenericQuestionService genericQuestionService) : IShellyWindow
@@ -237,7 +238,7 @@ public class PackageUpdate(
     {
         try
         {
-            var packages = await privilegedOperationService.GetPackagesNeedingUpdateAsync();
+            var packages = await unprivilegedOperationService.CheckForStandardApplicationUpdates();
             GLib.Functions.IdleAdd(0, () =>
             {
                 _listStore.RemoveAll();
@@ -248,6 +249,7 @@ public class PackageUpdate(
                     _packageGObjectRefs.Add(pkgObj);
                     _listStore.Append(pkgObj);
                 }
+
                 _noPackagesLabel.Visible = packages.Count == 0;
                 return false;
             });
