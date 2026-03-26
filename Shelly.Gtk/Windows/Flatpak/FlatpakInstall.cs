@@ -374,6 +374,10 @@ public class FlatpakInstall(
 
                 _overlayShowPluginButton.OnClicked += _addonHistoryHandler;
             }
+            else
+            {
+                _overlayShowPluginButton.SetVisible(false); 
+            }
 
             var remoteStrings = obj.Remotes.Select(r => r.Name + " : " + r.Scope).ToArray();
             _remotesStringList = StringList.New(remoteStrings);
@@ -756,13 +760,13 @@ public class FlatpakInstall(
             {
                 result = await unprivilegedOperationService.InstallFlatpakPackage(id,
                     true, _selectedRemote.Split(":")[0].Trim(),
-                    _selectedRemote.Contains("beta", StringComparison.InvariantCulture) ? "beta" : "stable");
+                    _selectedRemote.Contains("beta", StringComparison.InvariantCulture) ? "beta" : "stable", true);
             }
             else
             {
                 result = await unprivilegedOperationService.InstallFlatpakPackage(id,
                     false, _selectedRemote.Split(":")[0].Trim(),
-                    _selectedRemote.Contains("beta", StringComparison.InvariantCulture) ? "beta" : "stable");
+                    _selectedRemote.Contains("beta", StringComparison.InvariantCulture) ? "beta" : "stable", true);
             }
 
 
@@ -772,7 +776,7 @@ public class FlatpakInstall(
                     $"Installing Flatpak failed"
                 );
                 genericQuestionService.RaiseToastMessage(args);
-                Console.WriteLine($"Failed to install package {id}: {result.Error}");
+                Console.WriteLine($"Failed to install addon {id}: {result.Error}");
             }
         }
         finally
@@ -780,7 +784,7 @@ public class FlatpakInstall(
             lockoutService.Hide();
 
             var args = new ToastMessageEventArgs(
-                $"Installed Flatpak"
+                $"Installed Flatpak addon"
             );
             genericQuestionService.RaiseToastMessage(args);
         }
@@ -834,6 +838,7 @@ public class FlatpakInstall(
         var scroll = new ScrolledWindow();
         scroll.HscrollbarPolicy = PolicyType.Never;
         scroll.VscrollbarPolicy = PolicyType.Automatic;
+        scroll.SetOverlayScrolling(false);
         scroll.SetSizeRequest(-1, 400);
 
         var list = new Box();
@@ -926,44 +931,49 @@ public class FlatpakInstall(
         card.SetMarginBottom(4);
         card.SetMarginStart(2);
         card.SetMarginEnd(2);
-
-        var header = new Box();
-        header.SetOrientation(Orientation.Horizontal);
-        header.SetSpacing(8);
-        header.SetMarginBottom(4);
-        header.SetMarginStart(8);
-        header.SetMarginEnd(8);
+        
+        var row = new Box();
+        row.SetOrientation(Orientation.Horizontal);
+        row.SetSpacing(8);
+        row.SetMarginTop(8);
+        row.SetMarginBottom(8);
+        row.SetMarginStart(8);
+        row.SetMarginEnd(8);
+        
+        var textBox = new Box();
+        textBox.SetOrientation(Orientation.Vertical);
+        textBox.SetSpacing(4);
+        textBox.Hexpand = true;
 
         var nameLabel = new Label();
         nameLabel.SetText(name);
         nameLabel.AddCssClass("heading");
         nameLabel.SetHalign(Align.Start);
-        nameLabel.Hexpand = true;
-        nameLabel.SetMarginBottom(4);
-        nameLabel.SetMarginStart(8);
-        nameLabel.SetMarginEnd(8);
 
+        textBox.Append(nameLabel);
+
+        if (!string.IsNullOrWhiteSpace(summary))
+        {
+            var summaryLabel = new Label();
+            summaryLabel.SetText(summary);
+            summaryLabel.SetWrap(true);
+            summaryLabel.SetXalign(0);
+            summaryLabel.SetHalign(Align.Fill);
+            textBox.Append(summaryLabel);
+        }
+        
         var button = new Button();
-        button.SetLabel("Install");
+        button.SetIconName("folder-download-symbolic");
+        button.SetValign(Align.Center);
+        button.SetHalign(Align.End);
         button.OnClicked += async (_, _) =>
         {
             await InstallFromIdAsync(id);
         };
 
-        header.Append(nameLabel);
-        header.Append(button);
-        card.Append(header);
-
-        if (string.IsNullOrWhiteSpace(summary)) return card;
-        var summaryLabel = new Label();
-        summaryLabel.SetText(summary);
-        summaryLabel.SetWrap(true);
-        summaryLabel.SetXalign(0);
-        summaryLabel.SetMarginBottom(4);
-        summaryLabel.SetMarginStart(8);
-        summaryLabel.SetMarginEnd(8);
-        summaryLabel.SetHalign(Align.Fill);
-        card.Append(summaryLabel);
+        row.Append(textBox);
+        row.Append(button);
+        card.Append(row);
 
         return card;
     }
