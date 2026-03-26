@@ -23,6 +23,7 @@ public class FlatpakInstall(
     private CustomFilter _filter = null!;
     private SingleSelection? _selectionModel;
     private SignalHandler<Button>? _versionHistoryHandler;
+    private SignalHandler<Button>? _addonHistoryHandler;
     private ListBox? _categoryListBox;
     private List<AppstreamApp> _allPackages = [];
     private string _searchText = string.Empty;
@@ -67,6 +68,8 @@ public class FlatpakInstall(
     private DropDown _installFromFlatpakRefDropDown = null!;
     private string _selectedRefScope = "system";
     
+    private Button _overlayShowPluginButton = null!;
+    
     private CancellationTokenSource _searchDebounce = new();
 
     private readonly HttpClient _httpClient = new();
@@ -109,6 +112,7 @@ public class FlatpakInstall(
         _addRemoteUrlEntry = (Entry)builder.GetObject("overlay_add_remote_url_entry")!;
         _addRemoteScopeDropDown = (DropDown)builder.GetObject("overlay_add_remote_scope_dropdown")!;
         _deleteRemoteButton = (Button)builder.GetObject("overlay_delete_remote_button")!;
+        _overlayShowPluginButton = (Button)builder.GetObject("overlay_show_plugin_button")!;
 
         _installFromFlatpakRef = (Button)builder.GetObject("install_from_flatpak_ref_button")!;
         _installFromFlatpakRefDropDown = (DropDown)builder.GetObject("install_from_flatpak_ref_dropdown")!;
@@ -136,7 +140,6 @@ public class FlatpakInstall(
             var selectedIndex = _installFromFlatpakRefDropDown.GetSelected();
             _selectedRefScope = selectedIndex == 0 ? "system" : "user";
         };
-
 
         _addRemoteButton.OnClicked += (_, _) =>
         {
@@ -318,6 +321,8 @@ public class FlatpakInstall(
 
             _overlayIconImage = (Image)builder.GetObject("overlay_icon")!;
 
+           
+
             _overlayAuthorLabel.SetText(obj.DeveloperName);
             _overlayNameLabel.SetText(obj.Name);
             _overlayVersionLabel.SetText(obj.Releases.First().Version);
@@ -353,6 +358,22 @@ public class FlatpakInstall(
             };
 
             _versionHistoryButton.OnClicked += _versionHistoryHandler;
+            
+            if (obj.Addons.Count > 0)
+            {
+                _overlayShowPluginButton.SetVisible(true); 
+                
+                if (_addonHistoryHandler is not null)
+                    _overlayShowPluginButton.OnClicked -= _addonHistoryHandler;
+
+                _addonHistoryHandler = (_, _) =>
+                {
+                    _overlayBoxRoot?.Dispose();
+                    ShowAddons(obj.Addons);
+                };
+
+                _overlayShowPluginButton.OnClicked += _addonHistoryHandler;
+            }
 
             var remoteStrings = obj.Remotes.Select(r => r.Name + " : " + r.Scope).ToArray();
             _remotesStringList = StringList.New(remoteStrings);
@@ -711,6 +732,59 @@ public class FlatpakInstall(
             genericQuestionService.RaiseToastMessage(args);
         }
     }
+    
+    private async Task InstallFromIdAsync(string id)
+    {
+        if (!configService.LoadConfig().NoConfirm)
+        {
+            var args = new GenericQuestionEventArgs(
+                "Install Package?", id
+            );
+
+            genericQuestionService.RaiseQuestion(args);
+            if (!await args.ResponseTask)
+            {
+                return;
+            }
+        }
+
+        try
+        {
+            UnprivilegedOperationResult result;
+            lockoutService.Show($"Installing {id}...");
+            if (_selectedRemote.Contains("user"))
+            {
+                result = await unprivilegedOperationService.InstallFlatpakPackage(id,
+                    true, _selectedRemote.Split(":")[0].Trim(),
+                    _selectedRemote.Contains("beta", StringComparison.InvariantCulture) ? "beta" : "stable");
+            }
+            else
+            {
+                result = await unprivilegedOperationService.InstallFlatpakPackage(id,
+                    false, _selectedRemote.Split(":")[0].Trim(),
+                    _selectedRemote.Contains("beta", StringComparison.InvariantCulture) ? "beta" : "stable");
+            }
+
+
+            if (!result.Success)
+            {
+                var args = new ToastMessageEventArgs(
+                    $"Installing Flatpak failed"
+                );
+                genericQuestionService.RaiseToastMessage(args);
+                Console.WriteLine($"Failed to install package {id}: {result.Error}");
+            }
+        }
+        finally
+        {
+            lockoutService.Hide();
+
+            var args = new ToastMessageEventArgs(
+                $"Installed Flatpak"
+            );
+            genericQuestionService.RaiseToastMessage(args);
+        }
+    }
 
     private void ShowVersionHistory(List<AppstreamRelease> releases)
     {
@@ -737,6 +811,37 @@ public class FlatpakInstall(
         foreach (var release in releases)
             list.Append(BuildReleaseCard(release.Version,
                 DateTimeOffset.FromUnixTimeSeconds(release.Timestamp).ToString("yyyy-MM-dd"), release.Description));
+
+        scroll.SetChild(list);
+        _overlayBoxRoot.Append(scroll);
+
+        genericQuestionService.RaiseDialog(new GenericDialogEventArgs(_overlayBoxRoot));
+    }
+    
+    private void ShowAddons(List<AppstreamApp> addons)
+    {
+        _overlayBoxRoot = new Box();
+        _overlayBoxRoot.SetOrientation(Orientation.Vertical);
+        _overlayBoxRoot.SetSpacing(12);
+        _overlayBoxRoot.SetSizeRequest(500, -1);
+
+        var title = new Label();
+        title.SetText("Available Addons");
+        title.AddCssClass("title-2");
+        title.SetHalign(Align.Start);
+        _overlayBoxRoot.Append(title);
+
+        var scroll = new ScrolledWindow();
+        scroll.HscrollbarPolicy = PolicyType.Never;
+        scroll.VscrollbarPolicy = PolicyType.Automatic;
+        scroll.SetSizeRequest(-1, 400);
+
+        var list = new Box();
+        list.SetOrientation(Orientation.Vertical);
+        list.SetSpacing(8);
+
+        foreach (var addon in addons)
+            list.Append(BuildAddonCard(addon.Name, addon.Summary, addon.Id));
 
         scroll.SetChild(list);
         _overlayBoxRoot.Append(scroll);
@@ -808,6 +913,57 @@ public class FlatpakInstall(
             noDetails.SetMarginEnd(8);
             card.Append(noDetails);
         }
+
+        return card;
+    }
+
+    protected virtual Widget BuildAddonCard(string name, string summary, string id)
+    {
+        var card = new Box();
+        card.SetOrientation(Orientation.Vertical);
+        card.SetSpacing(4);
+        card.AddCssClass("card");
+        card.SetMarginBottom(4);
+        card.SetMarginStart(2);
+        card.SetMarginEnd(2);
+
+        var header = new Box();
+        header.SetOrientation(Orientation.Horizontal);
+        header.SetSpacing(8);
+        header.SetMarginBottom(4);
+        header.SetMarginStart(8);
+        header.SetMarginEnd(8);
+
+        var nameLabel = new Label();
+        nameLabel.SetText(name);
+        nameLabel.AddCssClass("heading");
+        nameLabel.SetHalign(Align.Start);
+        nameLabel.Hexpand = true;
+        nameLabel.SetMarginBottom(4);
+        nameLabel.SetMarginStart(8);
+        nameLabel.SetMarginEnd(8);
+
+        var button = new Button();
+        button.SetLabel("Install");
+        button.OnClicked += async (_, _) =>
+        {
+            await InstallFromIdAsync(id);
+        };
+
+        header.Append(nameLabel);
+        header.Append(button);
+        card.Append(header);
+
+        if (string.IsNullOrWhiteSpace(summary)) return card;
+        var summaryLabel = new Label();
+        summaryLabel.SetText(summary);
+        summaryLabel.SetWrap(true);
+        summaryLabel.SetXalign(0);
+        summaryLabel.SetMarginBottom(4);
+        summaryLabel.SetMarginStart(8);
+        summaryLabel.SetMarginEnd(8);
+        summaryLabel.SetHalign(Align.Fill);
+        card.Append(summaryLabel);
 
         return card;
     }
