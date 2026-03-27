@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Threading.Tasks;
 
 namespace PackageManager.Alpm;
 
@@ -28,7 +29,7 @@ public interface IAlpmManager
     void UpdatePackages(List<string> packageNames,
         AlpmTransFlag flags = AlpmTransFlag.None);
 
-    void SyncSystemUpdate(AlpmTransFlag flags = AlpmTransFlag.None);
+    Task SyncSystemUpdate(AlpmTransFlag flags = AlpmTransFlag.None);
 
     void InstallLocalPackage(string path, AlpmTransFlag flags = AlpmTransFlag.None);
 
