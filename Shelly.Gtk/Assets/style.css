@@ -88,3 +88,7 @@ scrolledwindow > scrollbar {
     padding: 10px 16px;
     color: @theme_fg_color;
 }
+
+.dim-label {
+    opacity: 0.5;
+}
