@@ -231,15 +231,19 @@ public class MetaSearch(
 
         var standardTask = Task.Run(async () =>
         {
-            var standardInstalled = await privilegedOperationService.GetInstalledPackagesAsync().ContinueWith(x =>
-                x.Result.Select(y => new MetaPackageModel(y.Name, y.Name, y.Version, y.Description,
-                    PackageType.STANDARD, y.Description, y.Repository, true)).ToList());
-            var standardAvailable = await privilegedOperationService.SearchPackagesAsync(_initialQuery)
-                .ContinueWith(x =>
-                    x.Result.Select(y => new MetaPackageModel(y.Name, y.Name, y.Version, y.Description,
-                        PackageType.STANDARD, y.Description, y.Repository,
-                        standardInstalled.Any(z => z.Name == y.Name))).ToList());
-            return standardAvailable;
+            var standardInstalled = await privilegedOperationService.GetInstalledPackagesAsync();
+            var standardAvailable = await privilegedOperationService.SearchPackagesAsync(_initialQuery);
+            
+            return standardAvailable.Select(y => new MetaPackageModel(
+                y.Name, 
+                y.Name, 
+                y.Version, 
+                y.Description,
+                PackageType.STANDARD, 
+                y.Description, 
+                y.Repository,
+                standardInstalled.Any(z => z.Name == y.Name))
+            ).ToList();
         });
         groupList.Add(standardTask);
 
@@ -248,16 +252,19 @@ public class MetaSearch(
         {
             flatpakGroup = Task.Run(async () =>
             {
-                var flatPakInstalled = await unprivilegedOperationService.ListFlatpakPackages().ContinueWith(x =>
-                    x.Result.Select(y => new MetaPackageModel(y.Id, y.Name, y.Version, y.Description,
-                        PackageType.FLATPAK, y.Summary, "Flathub", true)).ToList());
-                var flatpakAvailable = await unprivilegedOperationService.SearchFlathubAsync(_initialQuery)
-                    .ContinueWith(x =>
-                        x.Result.Select(y => new MetaPackageModel(y.Id, y.Name, y.Version, y.Description,
-                            PackageType.FLATPAK, y.Description, y.Id,
-                            flatPakInstalled.Any(z => z.Name == y.Name))).ToList());
+                var flatPakInstalled = await unprivilegedOperationService.ListFlatpakPackages();
+                var flatpakAvailable = await unprivilegedOperationService.SearchFlathubAsync(_initialQuery);
 
-                return flatpakAvailable;
+                return flatpakAvailable.Select(y => new MetaPackageModel(
+                    y.Id, 
+                    y.Name, 
+                    y.Version, 
+                    y.Description,
+                    PackageType.FLATPAK, 
+                    y.Summary, 
+                    "Flathub",
+                    flatPakInstalled.Any(z => z.Id == y.Id))
+                ).ToList();
             });
             groupList.Add(flatpakGroup);
         }
@@ -267,15 +274,19 @@ public class MetaSearch(
         {
             aurGroup = Task.Run(async () =>
             {
-                var aurInstalled = await privilegedOperationService.GetAurInstalledPackagesAsync()
-                    .ContinueWith(x =>
-                        x.Result.Select(y => new MetaPackageModel(y.Name, y.Name, y.Version, y.Description ?? "",
-                            PackageType.AUR, y.Url ?? "", "AUR", true)).ToList());
-                var aurAvailable = await privilegedOperationService.SearchAurPackagesAsync(_initialQuery)
-                    .ContinueWith(x => x.Result.Select(y =>
-                        new MetaPackageModel(y.Name, y.Name, y.Version, y.Description ?? "", PackageType.AUR,
-                            y.Url ?? "", "AUR", aurInstalled.Any(z => z.Name == y.Name))).ToList());
-                return aurAvailable;
+                var aurInstalled = await privilegedOperationService.GetAurInstalledPackagesAsync();
+                var aurAvailable = await privilegedOperationService.SearchAurPackagesAsync(_initialQuery);
+                
+                return aurAvailable.Select(y => new MetaPackageModel(
+                    y.Name, 
+                    y.Name, 
+                    y.Version, 
+                    y.Description ?? "", 
+                    PackageType.AUR,
+                    y.Url ?? "", 
+                    "AUR", 
+                    aurInstalled.Any(z => z.Name == y.Name))
+                ).ToList();
             });
             groupList.Add(aurGroup);
         }
