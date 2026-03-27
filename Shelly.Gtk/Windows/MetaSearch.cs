@@ -79,6 +79,7 @@ public class MetaSearch(
         {
             if (_selectionModel.GetSelectedItem() is MetaPackageGObject pkgObj)
             {
+                if (pkgObj.Package?.IsInstalled == true) return;
                 pkgObj.ToggleSelection();
             }
         };
@@ -98,7 +99,16 @@ public class MetaSearch(
             check.OnToggled += (s, _) =>
             {
                 if (listItem.GetItem() is MetaPackageGObject pkgObj)
+                {
+                    if (pkgObj.Package?.IsInstalled == true)
+                    {
+                        s.SetActive(false);
+                        return;
+                    }
+
                     pkgObj.IsSelected = s.GetActive();
+                }
+
                 _installButton.SetSensitive(AnySelected());
             };
         };
@@ -107,7 +117,20 @@ public class MetaSearch(
             if (args.Object is not ColumnViewCell listItem) return;
             if (listItem.GetItem() is not MetaPackageGObject pkgObj ||
                 listItem.GetChild() is not CheckButton check) return;
-            check.SetActive(pkgObj.IsSelected);
+
+            if (pkgObj.Package?.IsInstalled == true)
+            {
+                check.SetActive(false);
+                check.SetSensitive(false);
+                check.SetTooltipText("Already installed");
+            }
+            else
+            {
+                check.SetActive(pkgObj.IsSelected);
+                check.SetSensitive(true);
+                check.SetTooltipText(null);
+            }
+
             pkgObj.OnSelectionToggled += OnExternalToggle;
             _checkBinding[listItem] = OnExternalToggle;
             return;
@@ -135,7 +158,10 @@ public class MetaSearch(
         {
             if (args.Object is not ColumnViewCell listItem) return;
             if (listItem.GetItem() is MetaPackageGObject { Package: { } pkg } && listItem.GetChild() is Label label)
-                label.SetText(pkg.Name);
+            {
+                label.SetText(pkg.IsInstalled ? $"{pkg.Name} (Installed)" : pkg.Name);
+                if (pkg.IsInstalled) label.AddCssClass("dim-label");
+            }
         };
         nameColumn.SetFactory(_nameFactory);
 
@@ -149,7 +175,10 @@ public class MetaSearch(
         {
             if (args.Object is not ColumnViewCell listItem) return;
             if (listItem.GetItem() is MetaPackageGObject { Package: { } pkg } && listItem.GetChild() is Label label)
+            {
                 label.SetText(pkg.Repository);
+                if (pkg.IsInstalled) label.AddCssClass("dim-label");
+            }
         };
         repoColumn.SetFactory(_repoFactory);
 
@@ -163,7 +192,10 @@ public class MetaSearch(
         {
             if (args.Object is not ColumnViewCell listItem) return;
             if (listItem.GetItem() is MetaPackageGObject { Package: { } pkg } && listItem.GetChild() is Label label)
+            {
                 label.SetText(pkg.Version);
+                if (pkg.IsInstalled) label.AddCssClass("dim-label");
+            }
         };
         versionColumn.SetFactory(_versionFactory);
 
@@ -177,8 +209,11 @@ public class MetaSearch(
         {
             if (args.Object is not ColumnViewCell listItem) return;
             if (listItem.GetItem() is MetaPackageGObject { Package: { } pkg } && listItem.GetChild() is Label label)
+            {
                 label.SetText(pkg.Description.Substring(0,
                     pkg.Description.Length > 100 ? 100 : pkg.Description.Length));
+                if (pkg.IsInstalled) label.AddCssClass("dim-label");
+            }
         };
         descriptionColumn.SetFactory(_descriptionFactory);
     }
