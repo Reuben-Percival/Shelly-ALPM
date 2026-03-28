@@ -2002,7 +2002,6 @@ public class AlpmManager(string configPath = "/etc/pacman.conf") : IDisposable, 
                         {
                             var serverUrl = Marshal.PtrToStringUTF8(serverNode.Data)
                                             ?? throw new Exception($"Could not get server URL for package {pkg.Name}");
-                            Console.WriteLine($"Server URL {serverUrl}");
                             return $"{serverUrl.TrimEnd('/')}/{fileName}";
                         }
                     }
