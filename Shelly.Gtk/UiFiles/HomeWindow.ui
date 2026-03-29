@@ -80,7 +80,7 @@
           <object class="GtkBox">
             <property name="orientation">horizontal</property>
             <property name="spacing">10</property>
-            <property name="halign">center</property>
+            <property name="hexpand">true</property>
             <child>
               <object class="GtkScrolledWindow">
                 <property name="overlay-scrolling">false</property>
@@ -243,7 +243,7 @@
               <object class="GtkFrame">
                 <property name="height-request">200</property>
                 <property name="width-request">200</property>
-                <property name="hexpand">false</property>
+                <property name="hexpand">true</property>
                 <style>
                   <class name="rounded-card"/>
                 </style>
